@@ -1,0 +1,41 @@
+name:                gamebooksolver
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/bartavelle/gamebooksolver#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Simon Marechal
+maintainer:          bartavelle@gmail.com
+copyright:           Simon Marechal
+category:            Web
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Solver
+                       Lens
+                       Parallel
+                       Memo
+                       LoneWolf.Character
+                       LoneWolf.Chapter
+                       LoneWolf.Combat
+                       LoneWolf.Rules
+                       LoneWolf.Choices
+                       LoneWolf.Solve
+  ghc-options:         -Wall -funbox-strict-fields -O0
+  build-depends:       base >= 4.7 && < 5
+                     , unordered-containers
+                     , hashable, deepseq
+  default-language:    Haskell2010
+
+executable gamebooksolver-solvebook02
+  hs-source-dirs:      app
+  main-is:             SolveBook02.hs
+  ghc-options:         -threaded -rtsopts -Wall -with-rtsopts "-M16G -N8" -O0
+  other-modules:       LoneWolf.Book02
+  build-depends:       base
+                     , gamebooksolver
+  default-language:    Haskell2010
