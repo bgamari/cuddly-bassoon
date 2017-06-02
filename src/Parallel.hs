@@ -5,11 +5,8 @@ module Parallel
 
 --import Data.Traversable
 import Control.Monad
-import Data.Ratio
 import GHC.Exts
-import Data.Word
 
-import GHC.Generics
 import Control.DeepSeq
 
 
