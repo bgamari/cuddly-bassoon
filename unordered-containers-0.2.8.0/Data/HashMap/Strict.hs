@@ -32,7 +32,7 @@ import Control.Monad.ST.Unsafe
 import GHC.Exts (Ptr(..))
 import Data.Primitive
 import Debug.Trace
-import Data.STRef
+import Data.IORef
 import System.Breakpoint
 
 insertWith :: (Eq k, Hashable k) => (v -> v -> v) -> k -> v -> HashMap k v
@@ -79,19 +79,27 @@ traceWords a b = do
     ST $ \s -> case traceEvent# addr s of s' -> (# s', () #)
     return ()
 
-failOnDuplicate :: STRef s Bool -> ST s a -> ST s a
-failOnDuplicate ref action = do
-    a <- readSTRef ref
+failOnDuplicate :: IORef Bool -> b -> ST s a -> ST s a
+failOnDuplicate ref obj action = do
+    a <- unsafeIOToST $ readIORef ref
+    unsafeIOToST $ do logThreadId
+                      logWord 0x11
+                      logWord 0x11
+                      logPointer obj
     when a $ do unsafeIOToST breakpoint >> fail "uh oh"
-    writeSTRef ref True
+    unsafeIOToST $ atomicModifyIORef' ref $ const (True, ())
     !r <- action
-    writeSTRef ref False
+    unsafeIOToST $ atomicModifyIORef' ref $ const (False, ())
+    unsafeIOToST $ do logThreadId
+                      logWord 0x99
+                      logWord 0x99
+                      logPointer obj
     return r
 
 -- | In-place update version of insertWith
 unsafeInsertWith :: (Eq k, Hashable k, NFData k, NFData v, Show k)
-                 => STRef s Bool -> (v -> v -> v) -> k -> v -> HashMap k v -> ST s (HashMap k v)
-unsafeInsertWith ref f k0 v0 m0 = failOnDuplicate ref $ go h0 k0 v0 0 m0
+                 => IORef Bool -> (v -> v -> v) -> k -> v -> HashMap k v -> ST s (HashMap k v)
+unsafeInsertWith ref f k0 v0 m0 = failOnDuplicate ref m0 $ go h0 k0 v0 0 m0
   where
     h0 = hash k0
     go !h !k x !_ Empty = return $! leaf h k x
@@ -131,12 +139,12 @@ unsafeInsertWith ref f k0 v0 m0 = failOnDuplicate ref $ go h0 k0 v0 0 m0
 fromListWith :: (NFData k, NFData v, Eq k, Hashable k, Show k)
              => (v -> v -> v) -> [(k, v)] -> HashMap k v
 fromListWith f xs0 = runST $ do
-    ref <- newSTRef False
+    ref <- unsafeIOToST $ newIORef False
     go ref empty xs0
   where
     go ref m ((k,v) : xs) = do m' <- unsafeInsertWith ref f k v m
                                go ref m' xs
-    go _ m [] = return m
+    go _ m [] = return $! m
 {-# INLINE fromListWith #-}
 
 updateOrSnocWith :: Eq k => (v -> v -> v) -> k -> v -> A.Array (Leaf k v)
