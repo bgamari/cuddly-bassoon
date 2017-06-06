@@ -23,6 +23,7 @@ module Data.HashMap.Array
     , index
     , indexM
     , update
+    , updateM
     , updateWith'
     , unsafeUpdateM
     , insert
